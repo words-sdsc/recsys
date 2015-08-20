@@ -299,66 +299,56 @@ def main():
 
 
 def selectOutputCategs( HOW_MANY_FILES ):
-	remainingFiles   = HOW_MANY_FILES	#Number of categories to be selected
-	currentLevel     = categoryHierarchy.keys()
-	currentDepth     = categoryHierarchy
-	currentPath      = []
-	outputTree       = []
-	KeysUsedPerLevel = []
-	depthIndex       = 0
-	categorySequence = []
 
-	KeysUsedPerLevel.append([])
+	remainingFiles        = HOW_MANY_FILES	#Number of categories to be selected
+	currentLevel          = categoryHierarchy.keys()
+	currentDepth          =  categoryHierarchy
+	currentPath           = []
+	outputTree            = []
+	KeysAvailablePerLevel = []
+	depthIndex            = 0
+
+	categorySequence = [] #WHAT IS THIS FOR?
 
 	currentPath.append(categoryHierarchy)
+
+	KeysAvailablePerLevel.append(range(0, len(currentLevel)) )
 
 	while remainingFiles > 0:
 
 		print 'There are %d files remaining'            %remainingFiles
 		print 'Our current level has these options  %r' %currentLevel
 
-		numKeys       = len(currentLevel)
+		avaliableKeys = KeysAvailablePerLevel[depthIndex]
+		print 
+		if( avaliableKeys == [] and currentDepth == categoryHierarchy):
+			print 'With %d files remaining, there are' %remainingFiles
+			print 'no more new categories accessible' 
 
-		try:
-			selectedIndex = random.randint(0,len(currentLevel)-1)
-		except ValueError:
-			depthIndex     = depthIndex - 1
-			currentPath.pop()
-			currentDepth   = currentPath[depthIndex]
-			currentLevel   = currentDepth.keys()
-		print selectedIndex
-
-		print currentLevel
-		print currentDepth is categoryHierarchy
-		print KeysUsedPerLevel
-		print depthIndex
-		print range(0, numKeys) 
-		print range(0, numKeys) in KeysUsedPerLevel[depthIndex]
-		if(currentDepth is categoryHierarchy  and 
-			( range(0, numKeys) in KeysUsedPerLevel[depthIndex] or
-			  range(0, numKeys) == [] ) ):
-			break
-
-
-		elif( range(0, numKeys) in KeysUsedPerLevel[depthIndex] or
-			len(currentLevel) == 1 
-			and selectedIndex in KeysUsedPerLevel[depthIndex]) :
+		elif( avaliableKeys == [] ):
 			depthIndex   = depthIndex -1
 			currentPath.pop()
 			currentDepth = currentPath[depthIndex]
-	
-		elif( selectedIndex not in KeysUsedPerLevel[depthIndex] ):
-			KeysUsedPerLevel[depthIndex].append(selectedIndex)
+			print 'All categories in this level were accessed'
+			print 'The avaliable keys were %r' %currentLevel
+			currentLevel = currentDepth.keys()
+			print 'The new keys are %r' %currentLevel
 
-			selectedCateg  = currentLevel[selectedIndex]
+		else:
+
+			print 'This are the indexes remianing %r' % avaliableKeys
+			chosenIndex = avaliableKeys.pop(random.randrange(len(avaliableKeys)))
+			print 'This is the index we chose %d' %chosenIndex
+			selectedCateg =currentLevel[chosenIndex]
+			print 'That index corresponds with this category %s' % selectedCateg
 			depthIndex     = depthIndex + 1
 			remainingFiles = remainingFiles -1
 			currentDepth   = currentDepth[selectedCateg]
 			currentPath.append( currentDepth )
 			currentLevel   = currentDepth.keys()
-
 			outputTree.append(selectedCateg)
-			KeysUsedPerLevel.append([])
+			KeysAvailablePerLevel.append(range(0, len(currentLevel)) )
+
 
 
 	return outputTree
@@ -366,5 +356,3 @@ def selectOutputCategs( HOW_MANY_FILES ):
 
 # BEGINNING OF EXECUTION
 main()
-
-
