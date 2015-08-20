@@ -88,7 +88,28 @@ def outputFiles( CategArray, FILENAME ):
 		for idVal in numItemsCategory[category]:
 			try:
 					for json in b[idVal]:
-						targetFile.write(str(json))
+						#NEW CHANGES
+						writeReviewerId = json['reviewerID']
+						writeOverallRat = json['overall']
+						writeAsin       = json['asin']
+						writeReviewText = json['reviewText']
+						print 'json is %r' %json
+						print 'text is %r' %type(writeReviewText)
+						print 'rating is %r' %type(writeOverallRat)
+						writeWordCount  = len(writeReviewText.split())
+						#targetFile.write(str(json))
+						targetFile.write(str(writeReviewerId))
+						targetFile.write(' ')
+						targetFile.write('XXXXX')
+						targetFile.write(' ')
+						targetFile.write(str(writeOverallRat))
+						targetFile.write(' ')
+						targetFile.write(writeAsin)
+						targetFile.write(' ')
+						targetFile.write(str(writeWordCount))
+						targetFile.write(' ')
+						targetFile.write(str(writeReviewText))
+						#END NEW CHANGES
 						targetFile.write('\n')
 			except:
 				continue
