@@ -1,11 +1,8 @@
-import sys # Command line argument detection
-import gzip #For opening gzip compressed files 
-import pickle #For object serialization into files
-
-
-#Constant strings
-DONE_STRING        = "Done writting to file: %s"
-START_WRITE_STRING = "Writing to file: %s"
+import sys       # Command line argument detection
+import gzip      # For opening gzip compressed files 
+import pickle    # For object serialization into files
+import os
+import string
 
 def parse(path):
   g = gzip.open(path, 'r')
@@ -13,66 +10,65 @@ def parse(path):
     yield eval(l)
 
 
-def main():
+def start( allIds, reviewDataFile, idsPerCateg ):
+
+	currentDir = os.getcwd()                  #current directory path
+	newDir     = currentDir + "/OUTPUT"       #path of output directory
+	os.makedirs( newDir )                     #create direcetory path
+
+	idsPerCategCOPY = []
+	for pairOfIdsAndCateg in idsPerCateg:
+		filename   = newDir + '/subCateg_'+	pairOfIdsAndCateg["categ"] +'.gz'
+		stream = gzip.open(filename,'wb')
+		pairOfIdsAndCateg["stream"] = stream
+		idsPerCategCOPY.append(pairOfIdsAndCateg)
+
+
+	idsPerCateg = idsPerCategCOPY
+	idsPerCategCOPY = []
+
 	HASHMAP = {}
-	HASHMAPTEST = {}
-	print 'here'
 
+	for categ in idsPerCateg:
+		print 'category %r has %r many ids' %(categ["categ"], len(categ["ids"]))
+		print 'DEBUGGING'
+		if( set(categ["ids"]).issubset( set(allIds) ) ):
+			print 'all my ids are in allIds'
+		else:
+			print 'bug found brah!'
+	#HASHMAPTEST = {}
+	
 	#Parsing file to read
-	fileToParse = sys.argv[1]
-	outPutFile  = 'PRE-PROCESSED_' + fileToParse[10:]
+	reviewDataGen = parse(reviewDataFile)
 
-	generator = parse(fileToParse)
-	flag = True
-
-	handle = open( outPutFile , 'wb')
-	threshold = 50000
-		
-	nextJSON = next(generator)
-	currentKey = nextJSON['asin']
-	numDumps = 0
-
-	while flag:
-		c = 0
+	while True:  #Keep on reading until no more lines can be parsed
 		try:
-			
-			while not( c > threshold and currentKey != nextJSON['asin']): 
-				try:
-					c = c + 1
-					currentJSON = nextJSON
-					
-					currentKey = currentJSON['asin']
+			currentJSON = next(reviewDataGen)
+			if( currentJSON['asin'] in allIds ):
 
-					if( currentKey in HASHMAP ):
-						HASHMAP[currentKey].append(currentJSON)
-						#HASHMAPTEST[currentKey].append(currentJSON)
-					else:
-						HASHMAP[currentKey] = []
-						HASHMAP[currentKey].append(currentJSON)
-						#HASHMAPTEST[currentKey] = []
-						#HASHMAPTEST[currentKey].append(currentJSON)
-					#print( HASHMAP )
+				writeReviewerId = currentJSON['reviewerID']
+				writeOverallRat = currentJSON['overall']
+				writeAsin       = currentJSON['asin']
+				writeTimeStamp  = currentJSON['reviewTime']
+				writeReviewText = currentJSON['reviewText']
+				writeReviewText = writeReviewText.lower()
+				writeReviewText = "".join(l for l in writeReviewText 
+					                        if l not in string.punctuation)
+				writeWordCount  = len(writeReviewText.split())
 
-					nextJSON 	= next(generator)
-				except StopIteration:
-					flag = False 
-					break
 
-			pickle.dump(HASHMAP, handle)
-			numDumps = numDumps + 1
-			print 'dumping %d' %numDumps
-			HASHMAP = {}
 
-		except StopIteration:
-			flag = False 
+				writeMe = str(writeReviewerId) + ' ' + str(writeAsin)+ ' ' + \
+				          str(writeOverallRat)+' '+str(writeTimeStamp)+ ' ' + \
+				          str(writeWordCount)+ ' ' +str(writeReviewText)+ '\n'
+
+				for pairOfIdsAndCateg in idsPerCateg:
+					if currentJSON['asin'] in pairOfIdsAndCateg['ids']:
+						print 'writing! for category %r' %pairOfIdsAndCateg["categ"]
+						pairOfIdsAndCateg["stream"].write(writeMe)
+
+		except StopIteration: #Whenever there's no more jsons to read in file
+			for pairOfIdsAndCateg in idsPerCateg:
+				pairOfIdsAndCateg["stream"].close()
 			break
-
-	handle.close()
-
-	'''with open( outPutFile, 'rb') as handle:
-		b = pickle.loads(handle.read())
-
-	print HASHMAPTEST == b # True'''
-
-#Execution Start...
-main()
+	
