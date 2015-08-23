@@ -12,28 +12,12 @@ import sys                       # Command line argument detection
 import gzip                      # For opening gzip compressed files 
 import random                    # For random number generation
 import os                        # For I/O
-import pickle #For object serialization into files
+import pickle                    # For object serialization into files
+import string                    # To remove punctuation
 
 from operator import itemgetter  
+from jsonToHash import start
 
-#AT LEAST 1100, AT THE MINIMUM
-
-# START OF VARIABLE DECLARATION ... 
-
-#  GLOBAL VARIABLE(S)
-CATEGORY_THRESHOLD = 0; # Minimum number of products per category
-
-# Constant strings
-TITLE_STRING        = "SUB-CATEGORY SCRIPT FOR SDSC WORKFLOWS"
-DIVIDER_STRING      = "\n=======================================\n"
-OPENING_FILE_STRING = "Opening the following file: "
-OPTIONS_STRING      = ("OPTIONS: Exactly %d output files will be produced.\n"
-                      "Each with aprox %d reviews per product.")
-
-# Non-constants global variables
-numItemsCategory  = {}
-orderedCateg      = []
-categoryHierarchy = {}
 
 # START OF FUNCTION DELCARATIONS ... 
 
@@ -54,66 +38,6 @@ def parse(path):
   for l in g:
     yield eval(l)
 
-''' 
-============================= FUNCTION HEADER =================================
-Name        : outputFiles()
-Purpose     : To output the sub-category datasets
-Arguments   : CategArray - Array of the random categories and subcategories 
-              selected for output
-Description : At first we create the output directory in the directory of 
-              execution. We then loop through the CategArray categories, create
-              a writting stream to a file named after each category and dump
-              the raw data of each category's product ids in their 
-              corresponding files. 
-Output      : raw data of each category inside the output directory
-===============================================================================
-'''
-
-def outputFiles( CategArray, FILENAME ):
-
-	with open(FILENAME, 'rb') as handle:
-		b = pickle.loads(handle.read())
-
-	currentDir = os.getcwd()                  #current directory path
-	newDir     = currentDir + "/OUTPUT"       #path of output directory
-	os.makedirs( newDir )                     #create direcetory path
-
-
-	'''Looping through all sub-categories selected, creating files for them
-	   inside OUTPUT dir and writting the raw data of each category in them.'''
-
-	for category in CategArray: 
-		filename   = newDir + '/subCateg_'+category+'.json.gz'
-		targetFile = gzip.open(filename, 'wb')
-		for idVal in numItemsCategory[category]:
-			try:
-					for json in b[idVal]:
-						#NEW CHANGES
-						writeReviewerId = json['reviewerID']
-						writeOverallRat = json['overall']
-						writeAsin       = json['asin']
-						writeReviewText = json['reviewText']
-						print 'json is %r' %json
-						print 'text is %r' %type(writeReviewText)
-						print 'rating is %r' %type(writeOverallRat)
-						writeWordCount  = len(writeReviewText.split())
-						#targetFile.write(str(json))
-						targetFile.write(str(writeReviewerId))
-						targetFile.write(' ')
-						targetFile.write('XXXXX')
-						targetFile.write(' ')
-						targetFile.write(str(writeOverallRat))
-						targetFile.write(' ')
-						targetFile.write(writeAsin)
-						targetFile.write(' ')
-						targetFile.write(str(writeWordCount))
-						targetFile.write(' ')
-						targetFile.write(str(writeReviewText))
-						#END NEW CHANGES
-						targetFile.write('\n')
-			except:
-				continue
-		targetFile.close()
 
 ''' 
 ============================= FUNCTION HEADER =================================
@@ -128,14 +52,16 @@ Output      : The global variable named numItemsCategory is populated as a
 ===============================================================================
 '''
 
-def updateDicts( categoriesArr, id ):
+def updateDicts( categoriesArr, id , idsOnEachCategory ):
 
 	for category in categoriesArr:
-		if category in numItemsCategory:             #If this the category key
-			(numItemsCategory[category]).append(id)  #exists, just append id
+		if category in idsOnEachCategory:             #If this the category key
+			(idsOnEachCategory[category]).append(id)  #exists, just append id
 		else:
-			numItemsCategory[category] = []          #Else, initialize id array
-			(numItemsCategory[category]).append(id)
+			idsOnEachCategory[category] = []          #Else, initialize id array
+			(idsOnEachCategory[category]).append(id)
+
+	return idsOnEachCategory
 
 ''' 
 ============================= FUNCTION HEADER =================================
@@ -196,7 +122,7 @@ Description : Starting from the end of the array, we compare the current entry
 ===============================================================================
 '''
 
-def constructCategTree( sortedArray ):
+def constructCategTree( sortedArray, idsOnEachCategory, categoryHierarchy ):
 
 	currentIndex = len(sortedArray) -1           #index of entry being compared
 	currentCateg = sortedArray[currentIndex][0]  #categ of entry being compared
@@ -221,12 +147,12 @@ def constructCategTree( sortedArray ):
 		print( '============================')
 
 		# Cast array of ids as set
-		smallerSet = set(numItemsCategory[currentCateg])	
+		smallerSet = set(idsOnEachCategory[currentCateg])	
 
 		#For all categories at the current 'deepness' level in the tree
 		for probableParent in currentLevel.keys():
 			#We cast each category in the current 'deepness' level as a set
-			biggerSet = set(numItemsCategory[probableParent])
+			biggerSet = set(idsOnEachCategory[probableParent])
 
 			'''If the set of products on the current array entry is contained
 			   within the set of one of the categories in the category tree'''
@@ -265,17 +191,26 @@ Purpose     : To direct the execution of the program
 '''
 
 def main():
+	orderedCateg     	= []
+	idsOnEachCategory   = {}
+	categoryHierarchy 	= {}
+
+	TITLE_STRING        = "SUB-CATEGORY SCRIPT FOR SDSC WORKFLOWS"
+	DIVIDER_STRING      = "\n=======================================\n"
+	OPENING_FILE_STRING = "Opening the following file: "
+	OPTIONS_STRING      =("OPTIONS: Exactly %d output files will be produced.\n"
+                      	  "Each with aprox %d reviews per product.")
 
 	#Parsing command-line arguments
 	FILE_TO_OPEN       = sys.argv[1]      # Meta-data file to read
 	CATEGORY_THRESHOLD = int(sys.argv[2]) # How many reviews per output category
 	HOW_MANY_FILES     = int(sys.argv[3]) # How many subCategories to output
-	PRE_PROCESS_FILE   = sys.argv[4]
+	REVIEW_DATA        = sys.argv[4]      # Review data 
 
 	# Prompting user of selected options
-	print( DIVIDER_STRING + TITLE_STRING +  DIVIDER_STRING        )
-	print( OPENING_FILE_STRING + FILE_TO_OPEN                     )
-	print( OPTIONS_STRING ) % (HOW_MANY_FILES, CATEGORY_THRESHOLD )
+	print DIVIDER_STRING + TITLE_STRING +  DIVIDER_STRING        
+	print OPENING_FILE_STRING + FILE_TO_OPEN                     
+	print OPTIONS_STRING % (HOW_MANY_FILES, CATEGORY_THRESHOLD )
 
 	#Parsing meta-data file with a generator
 	generator = parse(FILE_TO_OPEN)
@@ -283,15 +218,17 @@ def main():
 	while True:  #Keep on reading until no more lines can be parsed
 		try:
 			currentJSON = next(generator)
-			updateDicts( (currentJSON['categories'][0]), currentJSON["asin"]  )
+			idsOnEachCategory = updateDicts( currentJSON['categories'][0],
+			                                 currentJSON["asin"],
+				                             idsOnEachCategory  )
+
 		except StopIteration: #Whenever there's no more jsons to read in file
 			break
 
-	
 
-	''' We sort the numItemsCategory dictionary ascendingly based on the amount
+	''' We sort the idsOnEachCategory dictionary ascendingly based on the amount
 	of ids in the array that's associated with each category '''
-	orderedCateg   = sorted([(k,v) for k,v in numItemsCategory.items()], 
+	orderedCateg   = sorted([(k,v) for k,v in idsOnEachCategory.items()], 
 		             key=lambda _: len(_[1]))
 
 	''' We locate the start of the categories that are above the review 
@@ -299,40 +236,70 @@ def main():
 	truncatedArray = binarySearch( orderedCateg, CATEGORY_THRESHOLD )
 
 	# We construct the category tree based on the truncated array
-	constructCategTree( truncatedArray )
-	print numItemsCategory
+	constructCategTree( truncatedArray, idsOnEachCategory, categoryHierarchy )
 
 	print( "**************************************************************")
 	print( "               SELECTING CATEGORIES TO OUTPUT                 ")
 	print( "**************************************************************")
 
 	#Select output categories
-	outputTree = selectOutputCategs( HOW_MANY_FILES )
+	outputCategs = selectOutputCategs( HOW_MANY_FILES,categoryHierarchy )
+
+	print "*****************************************************************"
+	print "               GETTING IDS OF PRODUCTS TO OUTPUT                 "
+	print "*****************************************************************"
+
+	(allIds,selectedIds) = getSelectedIds( outputCategs, idsOnEachCategory )
+
+	# Freeing memory
+	#numItemsCategory = []
 	
+	print "*****************************************************************"
+	print "   LOADING REVIEW DATA AND OUTPUTING BASED ON SELECTED IDS       "
+	print "*****************************************************************"
 
-	print "\n###############################################################\n"
-	print "                       OUTPUTING FILES"
-	print "#################################################################\n"
+	#Load raw review data and write files based on selected ids
+	start( allIds, REVIEW_DATA, selectedIds )
 
-	#Output files based on selected categories
-	outputFiles( outputTree, PRE_PROCESS_FILE)
+	print "Done." #Execution finished
 
 
+def getSelectedIds( outputCategories, idsOnEachCategory ):
+	idsPerCategory = []
+	AllIds         = []
+	for category in outputCategories:
+		idsAndCategPair = {}
+		idsAndCategPair["categ"] = category
+		idsAndCategPair["ids"]   = idsOnEachCategory[category]
+		idsPerCategory.append(idsAndCategPair)
 
-def selectOutputCategs( HOW_MANY_FILES ):
+		if( len(AllIds) != 0 ):
+			AllIdsSet = set(AllIds)
+			idsAndCategPairSet =set(idsAndCategPair["ids"])
+			newIds = list(AllIdsSet | idsAndCategPairSet) 
+			AllIds = AllIds + newIds 
+
+		else:
+			print '********************************************************'
+			print 'this should only happen once!'
+			print '********************************************************'
+			AllIds = idsAndCategPair["ids"] 
+
+
+	return (AllIds, idsPerCategory)
+
+
+def selectOutputCategs( HOW_MANY_FILES , categoryHierarchy):
 
 	remainingFiles        = HOW_MANY_FILES	#Number of categories to be selected
 	currentLevel          = categoryHierarchy.keys()
-	currentDepth          =  categoryHierarchy
+	currentDepth          = categoryHierarchy
 	currentPath           = []
-	outputTree            = []
+	selectedCategs        = []
 	KeysAvailablePerLevel = []
 	depthIndex            = 0
 
-	categorySequence = [] #WHAT IS THIS FOR?
-
 	currentPath.append(categoryHierarchy)
-
 	KeysAvailablePerLevel.append(range(0, len(currentLevel)) )
 
 	while remainingFiles > 0:
@@ -367,12 +334,10 @@ def selectOutputCategs( HOW_MANY_FILES ):
 			currentDepth   = currentDepth[selectedCateg]
 			currentPath.append( currentDepth )
 			currentLevel   = currentDepth.keys()
-			outputTree.append(selectedCateg)
+			selectedCategs.append(selectedCateg)
 			KeysAvailablePerLevel.append(range(0, len(currentLevel)) )
 
-
-
-	return outputTree
+	return selectedCategs
 
 
 # BEGINNING OF EXECUTION
