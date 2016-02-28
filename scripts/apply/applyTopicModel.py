@@ -61,50 +61,47 @@ def main():
 	#Spliting the model into topics
 	topics = savedModel.split('\n')
 
-	#RELEVANT VARS
-	topicModelWords = []
-	topicModel = {}
-	counter = 0
-	word = ''
 
+	# We'll load the topic model's word distributions
+    word = ''
+    counter = 0
+    vocabulary = [] # Vocabulary / all words
+	topicModel = {} # Topic distributions
 
-    #FOR A GIVEN TOPIC, GET ITS WORDS AND FREQS
-
-    #Loop though each topic distribution
+	#Loop though each topic distribution
 	for model in topics:
 		words = model.split()
 		for token in words:
-			#If the word
+			#If the token is a word, not a frequency
 			if counter % 2 != 1 or counter == 0:
-				word = token
-				#APPEND ITS FREQ TO THE VOCABULARY LIST FOR THE FIRST TIME
-				if word not in topicModelWords:
-					topicModelWords.append( word )
+				word = token 
+				# If this is the first time the word is found, add it to vocabulary
+				if word not in vocabulary:
+					vocabulary.append( word ) #Add word to vocabulary
 					topicModel[word] = []
-			#append its freq to the vocabulary list
+			#If the token is a frequency
 			else:
 				topicModel[word].append(token)
 			counter = counter + 1
-
 	print "Loaded topic model!"
 	print topicModel
 
+	# Now we apply the topic model to the reviews of the chosen product
 	print "Applying topic model to appended reviews"
-	topicDist = [0,0,0,0,0]
-	a = []
+	topicDist = [0,0,0,0,0] #Starting topic distribution
+
+	#a = []
 	print "Current topic distribution: %r" % topicDist
 	for word in appendedR:
-		try:
-			row = [ float(x) for x in  topicModel[word] ]
-			for index in range (0,5):
-				topicDist[index] = topicDist[index] + row[index]
-			#topicDist = [ math.exp(x) for x in topicDist]
-			#denominator = sum(topicDist)
-			#topicDist = [ float(x/denominator) for x in topicDist ]
-			print "Current topic distribution: %r" % topicDist
-		except Exception:
-			a.append(word)
+		#try:
+		row = [ float(x) for x in  topicModel[word] ]
+		for index in range (0,5): #For all 5 topics...
+		 	#Add the topic distribution of the word to the current topic distribution
+			topicDist[index] = topicDist[index] + row[index]
+		#except Exception:
+		#	a.append(word)
 
+	# We normalize the topic distribution
 	topicDist = [ math.exp(x) for x in topicDist]
 	denominator = sum(topicDist)
 	topicDist = [ float(x/denominator) for x in topicDist ]
