@@ -7,9 +7,17 @@
 ## DESCRIPTION OF FILES:
 
 ### 1. language.cpp and it's dependencies in the directory '/code_RecSys13':
-This is julian McAuley's unmodified topic modeling code. It's written in C++. It takes as input a compressed (.gz) file containing
-a set of reviews. It prints to the terminal the top found words in all 5 topics. Before runnign it, make sure to export the following:
-"export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/liblbfgs-1.10/lib/.libs/". Compile with 'make'. To run, use: ./train <inputFile>. 
+This is julian McAuley's unmodified topic modeling code. It's written in C++. It takes as input a compressed (.gz) file containing a set of reviews. It prints to the terminal the top found words in all 5 topics. Before runnign it, make sure to export the following:
+"export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/liblbfgs-1.10/lib/.libs/". Compile with 'make'. 
+
+To run, use: ./train <inputFile>. 
+
+Input file is .gz format. Each category node has a .gz file which is all the reviews of every product in that category.
+
+Format of .gz:
+a) Each line is a review for a product
+b) Each line contains several fields separated by space.
+
 An example input is is provided: Arts.votes.gz.
 
 ### 2. subCategoryFinder.py and it's dependency jsonToHash.py in the directory 'scripts/subCategoryFinder':
