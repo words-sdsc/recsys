@@ -21,4 +21,10 @@ it might be cause you have to deleted the '/OUTPUT' sub-folder from the director
 To run, use 'python subCategoryFinder <ReviewsToOpen.json.gz> <CategoryThreshold> <HowManyReviewFilesToOutput> <MetaDataToOpen.json.gz>'.
 
 ### 3. applyTopicModel.py in the directory 'scripts/apply':
-This is the python code that 
+This is the python code that takes the topic model outputed by language.cpp and applies it to a specific product in a set of
+reviews. Run it like so: python applyTopicModel.py <Reviews.gz> <model.txt> . It will print the detected topic distribution
+to the terminal.
+
+### 4. language.cpp in the directorty '/code_copy'
+This is the modified version of Julian McAuleys' topic modeling code. It outputs a topic model file named savedModel.txt that
+can be read by 'applyTopicModel.py'.

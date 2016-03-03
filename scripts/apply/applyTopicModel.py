@@ -63,9 +63,9 @@ def main():
 
 
 	# We'll load the topic model's word distributions
-    word = ''
-    counter = 0
-    vocabulary = [] # Vocabulary / all words
+    	word = ''
+    	counter = 0
+    	vocabulary = [] # Vocabulary / all words
 	topicModel = {} # Topic distributions
 
 	#Loop though each topic distribution
@@ -90,22 +90,22 @@ def main():
 	print "Applying topic model to appended reviews"
 	topicDist = [0,0,0,0,0] #Starting topic distribution
 
-	#a = []
+	#errorWords = []
 	print "Current topic distribution: %r" % topicDist
 	for word in appendedR:
-		#try:
-		row = [ float(x) for x in  topicModel[word] ]
-		for index in range (0,5): #For all 5 topics...
+		try:
+			row = [ float(x) for x in  topicModel[word] ]
+			for index in range (0,5): #For all 5 topics...
 		 	#Add the topic distribution of the word to the current topic distribution
-			topicDist[index] = topicDist[index] + row[index]
-		#except Exception:
-		#	a.append(word)
+				topicDist[index] = topicDist[index] + row[index]
+		except Exception:
+			errorWords.append(word)
 
 	# We normalize the topic distribution
 	topicDist = [ math.exp(x) for x in topicDist]
 	denominator = sum(topicDist)
 	topicDist = [ float(x/denominator) for x in topicDist ]
-
+	#print errorWords
 	# Reporting final status
 	print "Chosen id was %s" % chosenID
 	print "Final topic distribution %r" % topicDist
