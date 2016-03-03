@@ -84,14 +84,14 @@ def main():
 				topicModel[word].append(token)
 			counter = counter + 1
 	print "Loaded topic model!"
-	print topicModel
+	#print topicModel
 
 	# Now we apply the topic model to the reviews of the chosen product
 	print "Applying topic model to appended reviews"
 	topicDist = [0,0,0,0,0] #Starting topic distribution
 
-	#errorWords = []
-	print "Current topic distribution: %r" % topicDist
+	errorWords = []
+	#print "Current topic distribution: %r" % topicDist
 	for word in appendedR:
 		try:
 			row = [ float(x) for x in  topicModel[word] ]
@@ -105,11 +105,11 @@ def main():
 	topicDist = [ math.exp(x) for x in topicDist]
 	denominator = sum(topicDist)
 	topicDist = [ float(x/denominator) for x in topicDist ]
-	#print errorWords
+	print errorWords
 	# Reporting final status
-	print "Chosen id was %s" % chosenID
-	print "Final topic distribution %r" % topicDist
-	print "Distribution adds up to %d" % sum(topicDist)
+	#print "Chosen id was %s" % chosenID
+	#print "Distr %r" % topicDist
+	#print "SUM= %d" % sum(topicDist)
 
 #START EXECUTION
 main()
