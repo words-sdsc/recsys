@@ -10,7 +10,7 @@ import sys
 import gzip
 import math
 import random
-
+import numpy as np
 def main():
 	# Unpacking argv
 	reviewPath = sys.argv[1] # Review to open
@@ -27,26 +27,16 @@ def main():
 	chosedID  = '' #randomly chosenID
 	currentItemIndex = 0 #current product being visited in file
 	allReviews = fileData.split('\n') # A line/ a review in the review file
-	chosenItemIndex = random.randint(0, len(allReviews) )   #product index of the chosenID
-
-
-	# Loop through all reviews until the randomly chosen product is found...
-	for line in allReviews:
-		if(counter == chosenItemIndex):
-			elements = line.split(' ')
-			chosenID = elements[1] # set chosenID to the productID (2nd element)
-			break
-		else:
-			counter = counter + 1
 	
-
-	appendedR = [] # All reviews of the chosen product
+	reviewsPerId = {}
 
 	# Collecting/appending reviews of the chosen productID
 	for line in allReviews:
 		elements = line.split(' ')
-		if len(elements) > 1 and chosenID == elements[1]:
-			appendedR = appendedR + elements[7:]
+		if len(elements) > 1 and elements[1] not in reviewsPerId.keys():
+			reviewsPerId[elements[1]] = []
+		if len(elements) > 1:
+			reviewsPerId[elements[1]] = reviewsPerId[elements[1]] + elements[7:]
 	print "Appended reviews!"
 
 
@@ -88,28 +78,43 @@ def main():
 
 	# Now we apply the topic model to the reviews of the chosen product
 	print "Applying topic model to appended reviews"
-	topicDist = [0,0,0,0,0] #Starting topic distribution
-
+	distPerPID = {} #hashMap of distributions per ID
 	errorWords = []
 	#print "Current topic distribution: %r" % topicDist
-	for word in appendedR:
-		try:
-			row = [ float(x) for x in  topicModel[word] ]
-			for index in range (0,5): #For all 5 topics...
-		 	#Add the topic distribution of the word to the current topic distribution
-				topicDist[index] = topicDist[index] + row[index]
-		except Exception:
-			errorWords.append(word)
+	for PID in reviewsPerId.keys():
+		distPerPID[PID] = [0,0,0,0,0]
 
-	# We normalize the topic distribution
-	topicDist = [ math.exp(x) for x in topicDist]
-	denominator = sum(topicDist)
-	topicDist = [ float(x/denominator) for x in topicDist ]
+	for PID in distPerPID.keys():
+		print "Analyzing reviews for %s" %PID
+		appendedR = reviewsPerId[PID]
+		for word in appendedR:
+			try:
+				row = [ float(x) for x in  topicModel[word] ]
+				for index in range (0,5): #For all 5 topics...
+		 		#Add the topic distribution of the word to the current topic distribution
+					distPerPID[PID][index] = distPerPID[PID][index] + row[index]
+			except Exception:
+				errorWords.append(word)
+				errorWords = []
+		# We normalize the topic distribution
+		topicDist = [ math.exp(x) for x in distPerPID[PID] ]
+		denominator = sum(topicDist)
+		distPerPID[PID] = [ float(x/denominator) for x in topicDist ]
+
+	print "Writting output file"	
+	outputFile = open('outputFile.txt','w')
+	for PID in distPerPID.keys():
+		dist = distPerPID[PID]
+		maxTopic = np.argmax(distPerPID[PID])
+		print dist
+		line = "%s %.9f %.9f %.9f %.9f %.9f MAX TOPIC: %d\n" %(PID, dist[0], dist[1], dist[2], dist[3],dist[4], maxTopic)
+		outputFile.write(line) 
+'''
 	#print errorWords
 	# Reporting final status
-	print "Chosen id was %s" % chosenID
-	print "Distr %r" % topicDist
-	print "SUM= %d" % sum(topicDist)
-
+	#print "Chosen id was %s" % chosenID
+	#print "Distr %r" % topicDist
+	#print "SUM= %d" % sum(topicDist)
+'''
 #START EXECUTION
 main()
